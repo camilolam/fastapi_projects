@@ -48,7 +48,7 @@ while True:
         data = requests.get(url)
         reponse_json = data.json()
         setText(data)
-        # print(reponse_json)
+        print(reponse_json)
         window['-textbox-'].update(reponse_json)
 
     if event == '-salir-':
