@@ -3,10 +3,12 @@ import requests
 import sqlite3
 
 
-url = "http://127.0.0.1:5300/home_clientes"
-data = requests.get(url)
-reponse_json = data.json()
+# url = "http://127.0.0.1:5300/home_clientes"
+# data = requests.get(url)
+# reponse_json = data.json()
 # print(reponse_json)
+
+print("Se ha iniciado el programa")
 
 con = sqlite3.connect("elpobladoDb.db")
 cur = con.cursor()  # con cursor, podemos ejecutar todas la concultas a la base de datos
@@ -41,13 +43,12 @@ window = sg.Window('HelloWorld', layout)
 
 while True:
     event, values = window.read()
-    print(event, values)
     if event == '-mostrar-':
-        url = "http://127.0.0.1:5300/home_clientes"
+        url = "http://127.0.0.1:8000/home_clientes"
         data = requests.get(url)
         reponse_json = data.json()
         setText(data)
-        print(reponse_json)
+        # print(reponse_json)
         window['-textbox-'].update(reponse_json)
 
     if event == '-salir-':
