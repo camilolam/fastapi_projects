@@ -61,7 +61,7 @@ def home_clientes():
     cur = con.cursor()  # con cursor, podemos ejecutar todas la concultas a la base de datos
     res = cur.execute("SELECT * FROM clientes")
     clientes = res.fetchall()
-    print(clientes)
+    # print(clientes)
     for cliente in clientes:
         clientes_json.append(
             crear_json(cur, cliente)
@@ -74,7 +74,7 @@ def home_clientes():
 @app.get('/encontrar_cliente/{id}', tags=['clientes'])
 def encontrar_clientes(id: int):
     """ Buscamos un cliente por id """
-    print(id)
+    # print(id)
     try:
         con = sqlite3.connect("elpobladoDb.db")
         cur = con.cursor()  # con cursor, podemos ejecutar todas la concultas a la base de datos
@@ -92,7 +92,7 @@ def encontrar_clientes(id: int):
 @app.get('/encontrar_cliente_documento/{documento}', tags=['clientes'])
 def encontrar_clientes_documento(documento: str):
     """ Buscamos un cliente por documento """
-    print(documento)
+    # print(documento)
     try:
         con = sqlite3.connect("elpobladoDb.db")
         cur = con.cursor()  # con cursor, podemos ejecutar todas la concultas a la base de datos
