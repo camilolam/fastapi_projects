@@ -24,15 +24,16 @@ def customer_info_window(customer):
                        expand_x=True,
                        justification='center')],
               [sg.Text('Id\t'), sg.Input(f'{customer['id']}',
-                                         key='-input_documento-', disabled=True)],
+                                         key='-input_documento-', disabled=True,
+                                         text_color='white')],
               [sg.Text('Nombre\t'), sg.Input(f'{customer['nombre']}',
-                                             key='-input_documento-', disabled=True)],
+                                             key='-input_documento-', disabled=True, text_color='white')],
               [sg.Text('Cédula\t'), sg.Input(f'{customer['documento']}',
-                                             key='-input_documento-', disabled=True)],
+                                             key='-input_documento-', disabled=True, text_color='white')],
               [sg.Text('Correo\t'), sg.Input(f'{customer['correo']}',
-                                             key='-input_documento-', disabled=True)],
+                                             key='-input_documento-', disabled=True, text_color='white')],
               [sg.Text('Teléfono\t'), sg.Input(f'{customer['telefono']}',
-                                               key='-input_documento-', disabled=True)],
+                                               key='-input_documento-', disabled=True, text_color='white')],
               [sg.Button('Salir\t', key='-salir-')]
               ]
 
@@ -47,14 +48,46 @@ def customer_info_window(customer):
     window.close()
 
 
-# Main Window--------------------
-layout = [[sg.Text(text='Compraventa el Poblado',
-                   font=('Arial Bold', 20),
+# ----------------------------- Main Window ------------------------------------
+
+column_customer_info = [[sg.Text(text='Información Cliente',
+                                 font=('Arial Bold', 20),
+                                 size=20,
+                                 expand_x=True,
+                                 justification='center')],
+                        [sg.Text('Id\t'), sg.Input(
+                            key='-input_id-', disabled=True, text_color='white')],
+                        [sg.Text('Nombre\t'), sg.Input(key=f'-input_nombre-',
+                                                       disabled=True, text_color='white')],
+                        [sg.Text('Cédula\t'), sg.Input(key='-input_documento-',
+                                                       disabled=True, text_color='white')],
+                        [sg.Text('Correo\t'), sg.Input(key='-input_correo-',
+                                                       disabled=True, text_color='white')],
+                        [sg.Text('Teléfono\t'), sg.Input(
+                            key='-input_documento-', disabled=True, text_color='white')]
+                        ]
+
+column_buscar_info = [
+    [sg.Text(text='Busqueda de información',
+             font=('Arial Bold', 15),
+             size=20,
+             expand_x=True,
+             justification='center')],
+    [sg.Text('Documento')],
+    [sg.Input(key='-input_documento-'),
+     sg.Button('Buscar', key='-buscar_documento-')],
+    [sg.Text('Contrato')],
+    [sg.Input(key='-input_contrato-'),
+     sg.Button('Buscar', key='-buscar_contrato-')],
+]
+
+layout = [[sg.Text(text='CVP',
+                   font=('Arial Bold', 15),
                    size=20,
                    expand_x=True,
                    justification='center')],
-          [sg.Input(key='-input_documento-'),
-           sg.Button('Buscar', key='-buscar-')],
+          [sg.Column(column_buscar_info), sg.VerticalSeparator(),
+           sg.Column(column_customer_info)],
           [sg.Button('Lista clientes', key='-mostrar-'),
            sg.Button('Mostrar info cliente', key='-seleccionar-')],
           [sg.Table(values=[], headings=_headings,
@@ -63,11 +96,12 @@ layout = [[sg.Text(text='Compraventa el Poblado',
           [sg.Button('Salir', key='-salir-')]
           ]
 
-window = sg.Window('HelloWorld', layout)
+window = sg.Window('cvp_app', layout, finalize=True)
+window.Maximize()
 
 while True:
     event, values = window.read()
-    if event == '-buscar-':
+    if event == '-buscar_documento-':
         input_documento = values['-input_documento-']
         print(input_documento)
         if input_documento == "":
@@ -86,7 +120,6 @@ while True:
                     customer_data.append(customer[f'{_nombre}'])
 
                 customer_info_window(customer)
-                window['-tabla-'].update([customer_data])
 
     if event == '-mostrar-':
         url = "http://127.0.0.1:8000/home_clientes"
@@ -105,17 +138,22 @@ while True:
         window['-tabla-'].update(customers_array)
 
     elif event == '-seleccionar-':
-        url = f"http://127.0.0.1:8000/encontrar_cliente/{
-            (values['-tabla-'][0]+1)}"
-        data = requests.get(url)
-        customer = data.json()
-        # print(customer)
+        id_tabla = values['-tabla-']
+        if (id_tabla == []):
+            sg.popup('Selecciona una opción en la tabla')
+        else:
+            url = f"http://127.0.0.1:8000/encontrar_cliente/{(id_tabla[0]+1)}"
+            data = requests.get(url)
+            customer = data.json()
 
-        for _nombre in _nombres:  # función json2table
-            customer_data.append(customer[f'{_nombre}'])
+            for _nombre in _nombres:  # función json2table
+                customer_data.append(customer[f'{_nombre}'])
 
-        window['-tabla-'].update([customer_data])
-        customer_info_window(customer)
+            window['-input_id-']
+            window['-input_nombre-']
+            window['-input_document-']
+            window['-input_document-']
+            customer_info_window(customer)
 
     elif event == '-salir-':
         break
