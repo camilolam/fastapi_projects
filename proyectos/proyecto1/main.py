@@ -24,6 +24,16 @@ class Cliente(BaseModel):
     correo: str
     telefono: str
 
+
+class Contrato(BaseModel):
+    id_cliente: int
+    fecha: str
+    valor: int
+    adicional: int
+    abono: int
+    renovaciones: int
+    articulo: str
+
 # creamos y guardamos la base de datos que vamos a usa
 # con = sqlite3.connect("elpobladoDb.db")
 # cur = con.cursor()  # con cursor, podemos ejecutar todas la concultas a la base de datos
@@ -114,7 +124,7 @@ def anadir_cliente(cliente: Cliente):
     try:
         con = sqlite3.connect("elpobladoDb.db")
         cur = con.cursor()
-        cur.execute('SELECT name FROM PRAGMA_TABLE_INFO("clientes");')
+        # cur.execute('SELECT name FROM PRAGMA_TABLE_INFO("clientes");')
         cur.execute(f'INSERT INTO clientes (nombre, documento, correo, telefono) VALUES ("{
                     cliente.nombre}","{cliente.documento}","{cliente.correo}","{cliente.telefono}")')
         con.commit()
@@ -137,3 +147,24 @@ def home():
 
 
 # ¿Cual es la diferencia en fastApi entre el método get y el post?
+
+
+@app.post('/anadir_contrato', tags=['contratos'])
+def anadir_cliente(contrato: Contrato):
+    try:
+        con = sqlite3.connect("elpobladoDb.db")
+        cur = con.cursor()
+        # cur.execute('SELECT name FROM PRAGMA_TABLE_INFO("clientes");')
+        total = contrato.valor + contrato.adicional - contrato.abono
+        print(total)
+        cur.execute(f'INSERT INTO contratos (id_cliente, fecha, valor, adicional,abono,total, renovaciones, articulo) VALUES ({contrato.id_cliente},"{
+                    contrato.fecha}",{contrato.valor},{contrato.adicional},{contrato.abono},{total},{contrato.renovaciones},"{contrato.articulo}")')
+        con.commit()
+        con.close()
+        return {
+            "mensaje": "Se ha añadido correctamente"
+        }
+    except:
+        return {
+            "mensaje": "No se añadido correctamente, intenta más tarde"
+        }
