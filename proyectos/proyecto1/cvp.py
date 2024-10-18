@@ -4,6 +4,14 @@ import sqlite3
 
 import mysql.connector
 
+conn = mysql.connector.connect(
+    host="127.0.0.1",
+    port=3306,
+    user="root",
+    password="Maria123.")
+
+cur = conn.cursor()
+cur.execute('use CVP_DB')
 cur.execute('select * from contracts')
 names = cur.column_names
 
@@ -102,7 +110,7 @@ column_customer_info = [[sg.Text(text='Información Cliente',
                         [sg.Button(
                             'Mostrar', key='-contratos_mostrar-', visible=False), sg.Button(
                             'Añadir', key='-contratos_anadir-', visible=False), sg.Button(
-                            'Modificar', key='-contratos_modificar-', visible=False)]
+                            'Modificar', key='-contratos_modificar-')]
 
                         ]
 
@@ -130,7 +138,7 @@ layout = [[sg.Text(text='CVP',
           [sg.Button('Lista clientes', key='-mostrar-'),
            sg.Button('Mostrar info cliente', key='-seleccionar-')],
           [sg.Table(values=[], headings=names,
-                    key='-tabla-', text_color='White', justification='left', visible=False, expand_x=True)],
+                    key='-tabla-', text_color='White', justification='left', expand_x=True)],
 
           [sg.Button('Salir', key='-salir-')]
           ]
@@ -164,12 +172,11 @@ while True:
     if event == '-mostrar-':
         url = "http://127.0.0.1:8000/home_clientes"
         data = requests.get(url)
-        customers = data.json()
+        contracts = data.json()
 
-        # table_data = json2table(customers)
+        # table_data = json2table(contracts)
 
         # window['-tabla-'].update(table_data)
-        window['-tabla-'].update(visible=True)
 
     elif event == '-seleccionar-':
         id_tabla = values['-tabla-']

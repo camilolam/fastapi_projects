@@ -13,9 +13,12 @@ import requests as req  # type: ignore
 import sqlite3
 import os.path as path
 from pydantic import BaseModel
+import mysql.connector
 
 app = FastAPI()
 app.title = 'Compraventa el Poblado'
+
+# modelos
 
 
 class Cliente(BaseModel):
@@ -26,7 +29,8 @@ class Cliente(BaseModel):
 
 
 class Contrato(BaseModel):
-    id_cliente: int
+    customer_id: int
+    contrato: int
     fecha: str
     valor: int
     adicional: int
@@ -60,6 +64,15 @@ def crear_json(cur, cliente):
     # print('Se ha convertido en json')
     return data
 
+
+def crear_json(cur, cliente):
+    cur.execute('SELECT name FROM PRAGMA_TABLE_INFO("clientes");')
+    nombres = cur.fetchall()
+    data = {}
+    for i in range(len(nombres)):
+        data[f'{nombres[i][0]}'] = cliente[i]
+    # print('Se ha convertido en json')
+    return data
 # fin funciones adicionales ------------
 
 
@@ -148,18 +161,26 @@ def home():
 
 # ¿Cual es la diferencia en fastApi entre el método get y el post?
 
+# //////////// Contratos ///////////////////
 
 @app.post('/anadir_contrato', tags=['contratos'])
 def anadir_cliente(contrato: Contrato):
+
     try:
-        con = sqlite3.connect("elpobladoDb.db")
+        con = conn = mysql.connector.connect(
+            host="127.0.0.1",
+            port=3306,
+            user="root",
+            password="Maria123.")
+
         cur = con.cursor()
-        # cur.execute('SELECT name FROM PRAGMA_TABLE_INFO("clientes");')
+        cur.execute('use CVP_DB')
         total = contrato.valor + contrato.adicional - contrato.abono
         print(total)
-        cur.execute(f'INSERT INTO contratos (id_cliente, fecha, valor, adicional,abono,total, renovaciones, articulo) VALUES ({contrato.id_cliente},"{
-                    contrato.fecha}",{contrato.valor},{contrato.adicional},{contrato.abono},{total},{contrato.renovaciones},"{contrato.articulo}")')
+        cur.execute(f'INSERT INTO contracts (contract, date, value, additional,payment,total, renewal, article,customer_id) VALUES ({contrato.contrato},"{
+                    contrato.fecha}",{contrato.valor},{contrato.adicional},{contrato.abono},{total},{contrato.renovaciones},"{contrato.articulo}",3)')
         con.commit()
+        print('hemos pasado por acá')
         con.close()
         return {
             "mensaje": "Se ha añadido correctamente"
@@ -168,3 +189,21 @@ def anadir_cliente(contrato: Contrato):
         return {
             "mensaje": "No se añadido correctamente, intenta más tarde"
         }
+
+
+@app.get('/get_contracts', tags=['contratos'])
+def get_contracts():
+
+    con = conn = mysql.connector.connect(
+        host="127.0.0.1",
+        port=3306,
+        user="root",
+        password="Maria123.")
+
+    cur = con.cursor()
+    cur.execute('use CVP_DB')
+    cur.execute(f'SELECT * FROM contracts')
+
+    print('hemos pasado por acá')
+    print(cur)
+    return cur
