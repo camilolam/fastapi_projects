@@ -1,173 +1,113 @@
-import PySimpleGUI as sg
+import PySimpleGUI as sg  # type: ignore
 import requests
-import sqlite3
 
-import mysql.connector
-
-conn = mysql.connector.connect(
-    host="127.0.0.1",
-    port=3306,
-    user="root",
-    password="Maria123.")
-
-cur = conn.cursor()
-cur.execute('use CVP_DB')
-cur.execute('select * from contracts')
-names = cur.column_names
-
-
-conn.close()
 sg.theme('DarkAmber')
 
-# Funciones auxiliares
+""" UTILITIES """
 
 
-def db_conn(db_name):
-    conn = mysql.connector.connect(
-        host="localhost", user="root", passwd="Maria123.")
-    cur = conn.cursor()
-    cur.execute(f'use {db_name}')
-
-
-def query_one(conn, query):
-    cur = conn.cursor()
-    cur.execute(query)
-    return cur.fetchone()
-
-
-def query_all(conn, query):
-    cur = conn.cursor()
-    cur.execute(query)
-    return cur.fetchall()
-
-
-def json2table(data):
-    data_arrow = []
+def json2table(data, names):
     data_array = []
+    response = []
     for dat in data:
         for name in names:  # función json2table
-            customer_data.append(customer[f'{_nombre}'])
-        customers_array.append(customer_data)
-        customer_data = []
-    return customers_array
-
-# ventada mostrar información cliente encontrados
+            data_array.append(dat[f'{name}'])
+        response.append(data_array)
+        data_array = []
+    return response
 
 
-def customer_info_window(customer):
-    layout = [[sg.Text(text='Información Cliente',
-                       font=('Arial Bold', 20),
-                       size=20,
-                       expand_x=True,
-                       justification='center')],
-              [sg.Text('Id\t'), sg.Input(f'{customer['id']}',
-                                         key='-input_documento-', disabled=True,
-                                         text_color='white')],
-              [sg.Text('Nombre\t'), sg.Input(f'{customer['nombre']}',
-                                             key='-input_documento-', disabled=True, text_color='white')],
-              [sg.Text('Cédula\t'), sg.Input(f'{customer['documento']}',
-                                             key='-input_documento-', disabled=True, text_color='white')],
-              [sg.Text('Correo\t'), sg.Input(f'{customer['correo']}',
-                                             key='-input_documento-', disabled=True, text_color='white')],
-              [sg.Text('Teléfono\t'), sg.Input(f'{customer['telefono']}',
-                                               key='-input_documento-', disabled=True, text_color='white')],
-              [sg.Button('Salir\t', key='-salir-')]
-              ]
+""" MAIN WINDOW """
+url = f"http://127.0.0.1:8000/get_contracts_names"
+names = requests.get(url)
+names_json = names.json()
 
-    window = sg.Window('HelloWorld', layout)
+url2 = 'http://127.0.0.1:8000/get_contracts'
+contracts = requests.get(url2)
+contracts_json = contracts.json()
+print('oe estamos aca')
 
-    while True:
-        event, values = window.read()
+tabla = json2table(contracts_json, names_json)
+print(tabla)
 
-        if event == '-salir-':
-            break
+column1 = [
+    [sg.Text(text='Criterio de búsqueda',
+             font=('Arial Bold', 15),
+             size=20,
+             justification='left')],
+    [sg.Combo(['Contrato', 'Cliente'],
+              default_value='-Selecciona-', size=(43, 12), key='-search_option-')],
+    [sg.Input(key='-input_search-'),
+     sg.Button('Buscar', key='-search_button-')],
+]
 
-    window.close()
+Column2 = [
+    [sg.Text(text='Información Del Cliente',
+             font=('Arial Bold', 15),
+             size=20,
+             justification='left')],
+    [sg.Text('Nombre Completo  \t'), sg.Input(key=f'-input_name-',
+                                              disabled=True)],
+    [sg.Text('Documento\t'), sg.Input(key='-input_document-',
+                                      disabled=True)],
+    [sg.Text('Correo Electrónico  \t'), sg.Input(key='-input_email-',
+                                                 disabled=True)],
+    [sg.Text()],
+]
 
-
-# ----------------------------- Main Window ------------------------------------
-
-column_customer_info = [[sg.Text(text='Información Cliente',
-                                 font=('Arial Bold', 15),
-                                 size=20,
-                                 expand_x=True,
-                                 justification='center')],
-                        [sg.Text('Id\t'), sg.Input(
-                            key='-input_id-', disabled=True, text_color='white')],
-                        [sg.Text('Nombre\t'), sg.Input(key=f'-input_nombre-',
-                                                       disabled=True, text_color='white')],
-                        [sg.Text('Cédula\t'), sg.Input(key='-input_documento_info-',
-                                                       disabled=True, text_color='white')],
-                        [sg.Text('Correo\t'), sg.Input(key='-input_correo-',
-                                                       disabled=True, text_color='white')],
-                        [sg.Text('Teléfono\t'), sg.Input(
-                            key='-input_telefono-', disabled=True, text_color='white')],
-                        [sg.Text(text='Contratos',
-                                 font=('Arial Bold', 10),
-                                 size=20,
-                                 expand_x=True,
-                                 justification='center')],
-                        [sg.Button(
-                            'Mostrar', key='-contratos_mostrar-', visible=False), sg.Button(
-                            'Añadir', key='-contratos_anadir-', visible=False), sg.Button(
-                            'Modificar', key='-contratos_modificar-')]
-
-                        ]
-
-column_buscar_info = [
-    [sg.Text(text='Busqueda de información',
+layout = [
+    [sg.Text(text='Compraventa el Poblado',
              font=('Arial Bold', 15),
              size=20,
              expand_x=True,
              justification='center')],
-    [sg.Text('Documento')],
-    [sg.Input(key='-input_documento-'),
-     sg.Button('Buscar', key='-buscar_documento-')],
-    [sg.Text('Contrato')],
-    [sg.Input(key='-input_contrato-'),
-     sg.Button('Buscar', key='-buscar_contrato-')],
+    [sg.Text()],
+    [sg.Column(column1), sg.Text(), sg.Column(Column2)],
+    [sg.Button('Lista clientes', key='-mostrar-'),
+     sg.Button('Mostrar info cliente', key='-seleccionar-')],
+    [sg.Table(values=tabla, headings=names_json,
+              key='-tabla-', text_color='black', justification='left', background_color='white', expand_x=True)],
+
+    [sg.Button('Salir', key='-salir-')]
 ]
 
-layout = [[sg.Text(text='CVP',
-                   font=('Arial Bold', 15),
-                   size=20,
-                   expand_x=True,
-                   justification='center')],
-          [sg.Column(column_buscar_info), sg.VerticalSeparator(),
-           sg.Column(column_customer_info)],
-          [sg.Button('Lista clientes', key='-mostrar-'),
-           sg.Button('Mostrar info cliente', key='-seleccionar-')],
-          [sg.Table(values=[], headings=names,
-                    key='-tabla-', text_color='White', justification='left', expand_x=True)],
-
-          [sg.Button('Salir', key='-salir-')]
-          ]
-
-window = sg.Window('cvp_app', layout, finalize=True)
-window.Maximize()
+window = sg.Window('Compravente el Poblado', layout)
 
 while True:
     event, values = window.read()
-    if event == '-buscar_documento-':
-        input_documento = values['-input_documento-']
-        print(input_documento)
-        if input_documento == "":
-            sg.popup('Ingresa un documento')
-        else:
-            url = f"http://127.0.0.1:8000/encontrar_cliente_documento/{
-                input_documento}"
-            data = requests.get(url)
-            customer = data.json()
+    if event == '-search_button-':
+        option_search = values['-search_option-']
+        input_search = values['-input_search-']
 
-            if customer == -1:
-                sg.popup('Usuario no encontrado, ingresa documento válido')
-            else:
-                window['-input_id-'].update(customer['id'])
-                window['-input_nombre-'].update(customer['nombre'])
-                window['-input_documento_info-'].update(customer['documento'])
-                window['-input_correo-'].update(customer['correo'])
-                window['-input_telefono-'].update(customer['telefono'])
-                window['-contratos_documento-'].update(visible=True)
+        if option_search == '-Selecciona-':
+            sg.popup('Selecciona un criterio de búsqueda')
+        elif input_search == "":
+            sg.popup('Ingresa un documento')
+
+        else:
+            if option_search == 'Cliente':
+                url = "http://127.0.0.1:8000/get_customer_by_document/%i" % (
+                    int(input_search))
+                data = requests.get(url)
+                customer = data.json()
+                if customer == -1:
+                    sg.popup('Usuario no encontrado')
+                else:
+                    window['-input_name-'].update('%s %s' % (customer['name'],
+                                                             customer['surname']))
+                    window['-input_document-'].update(customer['document'])
+                    window['-input_email-'].update(customer['email'])
+                    url = "http://127.0.0.1:8000/get_contract_by_customer_id/%i" % (
+                        int(customer['id']))
+                    data = requests.get(url)
+                    contracts = data.json()
+
+                    url = "http://127.0.0.1:8000/get_contracts_names"
+                    data_name = requests.get(url)
+                    names = data_name.json()
+
+                    data_table = json2table(contracts, names)
+                    window['-tabla-'].update(values=data_table)
 
     if event == '-mostrar-':
         url = "http://127.0.0.1:8000/home_clientes"

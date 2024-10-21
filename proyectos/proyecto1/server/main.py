@@ -165,34 +165,25 @@ def add_customer(customer: Cliente):
         }
 
 
-""" FIN CUSTOMERS """
-
-
-@ app.get('/fecha_actual', tags=['utilidades'])
-def home():
-    url = "http://worldtimeapi.org/api/timezone/America/Bogota"
-    data = req.get(url)
-    reponse_json = data.json()
-    return reponse_json['datetime']
-
-
 """ CONTRATOS """
 
 
-@ app.post('/anadir_contrato', tags=['contratos'])
-def andir_contrato(contrato: Contrato):
+@ app.post('/add_contract', tags=['contracts'])
+def add_contract(contract: Contrato):
 
     try:
         conn = mysql.connector.connect(
-            host="127.0.0.1", port=3306, user="root", password="Maria123.", database='CVP_DB')
-        print('conexión correcta')
-        cur = conn.cursor()
+            host="127.0.0.1",
+            port=3306,
+            user="root",
+            password="Maria123.",
+            database='CVP_DB')
 
-        total = contrato.valor + contrato.adicional - contrato.abono
-        sql = 'INSERT INTO contracts (contract,date,value,additional,payment,total, renewal,article, customer_id) VALUES (%i,"%s",%i,%i,%i,%i,%i,"%s",%i)'
-        values = (contrato.contrato, contrato.fecha, contrato.valor, contrato.adicional,
-                  contrato.abono, total, contrato.renovaciones, contrato.articulo, contrato.customer_id)
-        cur.execute(sql % values)
+        cur = conn.cursor()
+        total = contract.valor + contract.adicional - contract.abono
+        values = (contract.contract, contract.fecha, contract.valor, contract.adicional,
+                  contract.abono, total, contract.renovaciones, contract.articulo, contract.customer_id)
+        cur.execute('INSERT INTO contracts (contract,date,value,additional,payment,total, renewal,article, customer_id) VALUES (%i,"%s",%i,%i,%i,%i,%i,"%s",%i)' % values)
         conn.commit()
         conn.close()
 
@@ -205,7 +196,7 @@ def andir_contrato(contrato: Contrato):
         }
 
 
-@ app.get('/get_contracts', tags=['contratos'])
+@ app.get('/get_contracts', tags=['contracts'])
 def get_contracts():
     conn = mysql.connector.connect(
         host="127.0.0.1",
@@ -221,4 +212,60 @@ def get_contracts():
     return db2json(contracts, cur.column_names)
 
 
-""" FIN CONTRATOS """
+@ app.get('/get_contract_by_contract/{_contract}', tags=['contracts'])
+def get_contracts(_contract: int):
+    conn = mysql.connector.connect(
+        host="127.0.0.1",
+        port=3306,
+        user="root",
+        password="Maria123.",
+        database='CVP_DB')
+
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM contracts WHERE contract = %i' % (_contract))
+    contract = cur.fetchone()
+    conn.close()
+    return db2json_one(contract, cur.column_names)
+
+
+@ app.get('/get_contract_by_customer_id/{customer_id}', tags=['contracts'])
+def get_contracts(customer_id: int):
+    conn = mysql.connector.connect(
+        host="127.0.0.1",
+        port=3306,
+        user="root",
+        password="Maria123.",
+        database='CVP_DB')
+
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM contracts WHERE customer_id = %i' %
+                (customer_id))
+    contracts = cur.fetchall()
+    conn.close()
+    return db2json(contracts, cur.column_names)
+
+
+""" UTILIDADES """
+
+
+@app.get('/fecha_actual', tags=['utilidades'])
+def home():
+    url = "http://worldtimeapi.org/api/timezone/America/Bogota"
+    data = req.get(url)
+    reponse_json = data.json()
+    return reponse_json['datetime']
+
+
+@app.get('/get_contracts_names', tags=['utilidades'])
+def get_contracts_names():
+    conn = mysql.connector.connect(
+        host="127.0.0.1",
+        port=3306,
+        user="root",
+        password="Maria123.",
+        database='CVP_DB')
+
+    cur = conn.cursor()
+    cur.execute('SELECT * FROM contracts')
+    conn.close()
+    return cur.column_names
