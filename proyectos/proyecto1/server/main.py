@@ -92,7 +92,10 @@ def get_customers():
         customers = cur.fetchall()
         conn.close()
 
-        return db2json(customers, cur.column_names)
+        return {
+            'info': db2json(customers, cur.column_names),
+            'column_names': cur.column_names
+        }
     except:
         return -1
 
@@ -113,7 +116,10 @@ def get_customer_by_id(id: int):
         cliente = cur.fetchone()
         conn.close()
 
-        return db2json_one(cliente, cur.column_names)
+        return {
+            'info': db2json_one(cliente, cur.column_names),
+            'column_names': cur.column_names
+        }
     except:
         return -1
 
@@ -135,7 +141,10 @@ def get_customer_by_document(document: str):
             f'SELECT * FROM customers_ where document = "%s"' % (document))
         customer = cur.fetchone()
         conn.close()
-        return db2json_one(customer, cur.column_names)
+        return {
+            'info': db2json_one(customer, cur.column_names),
+            'column_names': cur.column_names
+        }
     except:
         return -1
 
@@ -209,7 +218,10 @@ def get_contracts():
     cur.execute('SELECT * FROM contracts')
     contracts = cur.fetchall()
     conn.close()
-    return db2json(contracts, cur.column_names)
+    return {
+        'info': db2json(contracts, cur.column_names),
+        'column_names': cur.column_names
+    }
 
 
 @ app.get('/get_contract_by_contract/{_contract}', tags=['contracts'])
@@ -225,10 +237,13 @@ def get_contracts(_contract: int):
     cur.execute('SELECT * FROM contracts WHERE contract = %i' % (_contract))
     contract = cur.fetchone()
     conn.close()
-    return db2json_one(contract, cur.column_names)
+    return {
+        'info': db2json_one(contract, cur.column_names),
+        'column_names': cur.column_names
+    }
 
 
-@ app.get('/get_contract_by_customer_id/{customer_id}', tags=['contracts'])
+@ app.get('/get_contracts_by_customer_id/{customer_id}', tags=['contracts'])
 def get_contracts(customer_id: int):
     conn = mysql.connector.connect(
         host="127.0.0.1",
@@ -242,7 +257,10 @@ def get_contracts(customer_id: int):
                 (customer_id))
     contracts = cur.fetchall()
     conn.close()
-    return db2json(contracts, cur.column_names)
+    return {
+        'info': db2json(contracts, cur.column_names),
+        'column_names': cur.column_names
+    }
 
 
 """ UTILIDADES """

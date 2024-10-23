@@ -1,5 +1,7 @@
 import PySimpleGUI as sg  # type: ignore
-import requests
+import requests  # type: ignore
+from pathlib import Path
+import json
 
 sg.theme('DarkAmber')
 
@@ -17,18 +19,37 @@ def json2table(data, names):
     return response
 
 
+def fill_table(customer):
+    window['-input_id-'].update(customer['id'])
+    window['-input_name-'].update('%s %s' % (customer['name'],
+                                             customer['surname']))
+    window['-input_document-'].update(customer['document'])
+    window['-input_email-'].update(customer['email'])
+
+
+def query(url):
+    data = requests.get(url)
+    return data.json()
+
+
+def save_selected(contract, customer):
+
+    with open('../tmp/tmp.json', 'w') as json_file:
+        new_data = {
+            "contract": contract,
+            "customer": customer
+        }
+        data = json.dump(new_data, json_file)
+
+
 """ MAIN WINDOW """
-url = f"http://127.0.0.1:8000/get_contracts_names"
-names = requests.get(url)
-names_json = names.json()
 
 url2 = 'http://127.0.0.1:8000/get_contracts'
-contracts = requests.get(url2)
-contracts_json = contracts.json()
-print('oe estamos aca')
-
-tabla = json2table(contracts_json, names_json)
-print(tabla)
+data = requests.get(url2)
+data_json = data.json()
+contracts = data_json['info']
+names = data_json['column_names']
+tabla = json2table(contracts, names)
 
 column1 = [
     [sg.Text(text='Criterio de búsqueda',
@@ -46,6 +67,8 @@ Column2 = [
              font=('Arial Bold', 15),
              size=20,
              justification='left')],
+    [sg.Text('id  \t\t'), sg.Input(key=f'-input_id-',
+                                   disabled=True)],
     [sg.Text('Nombre Completo  \t'), sg.Input(key=f'-input_name-',
                                               disabled=True)],
     [sg.Text('Documento\t'), sg.Input(key='-input_document-',
@@ -63,10 +86,22 @@ layout = [
              justification='center')],
     [sg.Text()],
     [sg.Column(column1), sg.Text(), sg.Column(Column2)],
-    [sg.Button('Lista clientes', key='-mostrar-'),
-     sg.Button('Mostrar info cliente', key='-seleccionar-')],
-    [sg.Table(values=tabla, headings=names_json,
-              key='-tabla-', text_color='black', justification='left', background_color='white', expand_x=True)],
+    [
+        sg.Button('Mostrar contratos', key='-show_all-'),
+        sg.Button('Seleccionar contrato', key='-select_contract-'),
+        sg.Button('Nuevo Contrato', key='-add_contract-'),
+        sg.Button('Adicional', key='-additinal_contract-'),
+        sg.Button('Abono', key='-payment_contract-'),
+        sg.Button('Renovación', key='-renewal_contract-')
+    ],
+    [sg.Table(values=tabla,
+              headings=names,
+              key='-tabla-',
+              text_color='black',
+              justification='left',
+              background_color='white',
+              expand_x=True,
+              enable_click_events=True)],
 
     [sg.Button('Salir', key='-salir-')]
 ]
@@ -86,59 +121,84 @@ while True:
 
         else:
             if option_search == 'Cliente':
-                url = "http://127.0.0.1:8000/get_customer_by_document/%i" % (
-                    int(input_search))
-                data = requests.get(url)
-                customer = data.json()
-                if customer == -1:
+                data = query("http://127.0.0.1:8000/get_customer_by_document/%i" % (
+                    int(input_search)))
+
+                if data == -1:
                     sg.popup('Usuario no encontrado')
                 else:
-                    window['-input_name-'].update('%s %s' % (customer['name'],
-                                                             customer['surname']))
-                    window['-input_document-'].update(customer['document'])
-                    window['-input_email-'].update(customer['email'])
-                    url = "http://127.0.0.1:8000/get_contract_by_customer_id/%i" % (
-                        int(customer['id']))
-                    data = requests.get(url)
-                    contracts = data.json()
-
-                    url = "http://127.0.0.1:8000/get_contracts_names"
-                    data_name = requests.get(url)
-                    names = data_name.json()
-
+                    customer = data['info']
+                    data = query("http://127.0.0.1:8000/get_contracts_by_customer_id/%i" % (
+                        int(customer['id'])))
+                    contracts = data['info']
+                    names = data['column_names']
                     data_table = json2table(contracts, names)
+                    fill_table(customer)
                     window['-tabla-'].update(values=data_table)
 
-    if event == '-mostrar-':
-        url = "http://127.0.0.1:8000/home_clientes"
-        data = requests.get(url)
-        contracts = data.json()
+            if option_search == 'Contrato':
+                data = query("http://127.0.0.1:8000/get_contract_by_contract/%i" % (
+                    int(input_search)))
+                contract = data['info']
+                names = data['column_names']
 
-        # table_data = json2table(contracts)
+                if contract == -1:
+                    sg.popup('Contrato no encontrado, ingresa contrato valido')
+                else:
+                    data = query("http://127.0.0.1:8000/get_customer_by_id/%i" % (
+                        contract['customer_id']))
+                    customer = data['info']
 
-        # window['-tabla-'].update(table_data)
+                    data_table = json2table([contract], names)
+                    window['-tabla-'].update(values=data_table)
+                    fill_table(customer)
+                    save_selected(contract, customer)
 
-    elif event == '-seleccionar-':
-        id_tabla = values['-tabla-']
+    elif event == '-show_all-':
+        data = query("http://127.0.0.1:8000/get_contracts")
+        contracts = data['info']
+        names = data['column_names']
+        table_data = json2table(contracts, names)
+
+        window['-tabla-'].update(table_data)
+        window['-input_id-'].update('')
+        window['-input_name-'].update('')
+        window['-input_document-'].update('')
+        window['-input_email-'].update('')
+
+    elif event == '-select_contract-':
+        id_tabla = values['-tabla-'][0]
+        customer_id = values['-input_id-']
+
         if (id_tabla == []):
             sg.popup('Selecciona una opción en la tabla')
         else:
-            url = f"http://127.0.0.1:8000/encontrar_cliente/{(id_tabla[0]+1)}"
-            data = requests.get(url)
-            customer = data.json()
+            if customer_id == '':
+                data = query("http://127.0.0.1:8000/get_contracts")
+            else:
+                data = query("http://127.0.0.1:8000/get_contracts_by_customer_id/%i" % (
+                    int(customer_id)))
 
-            window['-input_id-'].update(customer['id'])
-            window['-input_nombre-'].update(customer['nombre'])
-            window['-input_documento_info-'].update(customer['documento'])
-            window['-input_correo-'].update(customer['correo'])
-            window['-input_telefono-'].update(customer['telefono'])
-            window['-contratos_mostrar-'].update(visible=True)
-            window['-contratos_anadir-'].update(visible=True)
-            window['-contratos_modificar-'].update(visible=True)
+            contract_selected = data['info'][id_tabla]
+            names = data['column_names']
+
+            data = query("http://127.0.0.1:8000/get_customer_by_id/%i" % (
+                int(contract_selected['customer_id'])))
+            customer = data['info']
+            data_table = json2table([contract_selected], names)
+            fill_table(customer)
+            save_selected(contract_selected, customer)
+            window['-tabla-'].update(values=data_table)
 
     elif event == '-buscar_contratos_documento-':
         sg.popup('Estas intentando buscar contratos')
     elif event == '-salir-':
         break
+
+    # if isinstance(event, tuple):
+    #     # TABLE CLICKED Event has value in format ('-TABLE=', '+CLICKED+', (row,col))
+    #     if event[0] == '-tabla-':
+    #         print(values['-tabla-'])
+    #         window['-tabla-']
 
 window.close()
