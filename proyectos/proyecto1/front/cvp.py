@@ -44,11 +44,9 @@ def save_selected(contract, customer):
 
 """ MAIN WINDOW """
 
-url2 = 'http://127.0.0.1:8000/get_contracts'
-data = requests.get(url2)
-data_json = data.json()
-contracts = data_json['info']
-names = data_json['column_names']
+data = query('http://127.0.0.1:8000/get_contracts')
+contracts = data['info']
+names = data['column_names']
 tabla = json2table(contracts, names)
 
 column1 = [

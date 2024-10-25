@@ -21,9 +21,21 @@ import sqlite3
 import os.path as path
 from pydantic import BaseModel  # type: ignore
 import mysql.connector  # type: ignore
+import dotenv
+import os
 
 app = FastAPI()
 app.title = 'Compraventa el Poblado'
+
+
+""" Variables de entorno, usuarios y contraseñas"""
+dotenv.load_dotenv()
+API_KEY = os.getenv("API_KEY")
+HOST_DB = os.getenv("HOST_DB")
+PORT_DB = os.getenv("PORT_DB")
+USER_DB = os.getenv("USER_DB")
+PASSWORD_DB = os.getenv("PASSWORD_DB")
+DB = os.getenv("DB")
 
 """ MODELOS: estos modelos nos ayudan a volver objetos lo que llega en una petición POST"""
 
@@ -72,6 +84,18 @@ def db2json(objects_db, column_names):
     return data_array
 
 
+def db_conn():
+    conn = mysql.connector.connect(
+        host=HOST_DB,
+        port=PORT_DB,
+        user=USER_DB,
+        password=PASSWORD_DB,
+        database=DB
+    )
+    cur = conn.cursor()
+    return conn, cur
+
+
 """ CUSTOMERS """
 
 
@@ -80,14 +104,7 @@ def get_customers():
     """ cargamos la información de los clientes"""
 
     try:
-        conn = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3306,
-            user="root",
-            password="Maria123.",
-            database='CVP_DB')
-
-        cur = conn.cursor()
+        conn, cur = db_conn()
         cur.execute("SELECT * FROM customers_")
         customers = cur.fetchall()
         conn.close()
@@ -104,14 +121,8 @@ def get_customers():
 def get_customer_by_id(id: int):
     """ Buscamos un cliente por id """
     try:
-        conn = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3306,
-            user="root",
-            password="Maria123.",
-            database='CVP_DB')
-
-        cur = conn.cursor()  # con cursor, podemos ejecutar todas la concultas a la base de datos
+        # con cursor, podemos ejecutar todas la concultas a la base de datos
+        conn, cur = db_conn()
         cur.execute(f"SELECT * FROM customers_ where id = %i" % (id))
         cliente = cur.fetchone()
         conn.close()
@@ -129,14 +140,7 @@ def get_customer_by_document(document: str):
     """ Buscamos un cliente por documento """
     # print(documento)
     try:
-        conn = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3306,
-            user="root",
-            password="Maria123.",
-            database='CVP_DB')
-
-        cur = conn.cursor()
+        conn, cur = db_conn()
         cur.execute(
             f'SELECT * FROM customers_ where document = "%s"' % (document))
         customer = cur.fetchone()
@@ -152,13 +156,7 @@ def get_customer_by_document(document: str):
 @ app.post('/add_customer', tags=['customers'])
 def add_customer(customer: Cliente):
     try:
-        conn = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3306,
-            user="root",
-            password="Maria123.",
-            database='CVP_DB')
-        cur = conn.cursor()
+        conn, cur = db_conn()
         values = (customer.name, customer.surname,
                   customer.document, customer.email)
         cur.execute(
@@ -181,14 +179,7 @@ def add_customer(customer: Cliente):
 def add_contract(contract: Contrato):
 
     try:
-        conn = mysql.connector.connect(
-            host="127.0.0.1",
-            port=3306,
-            user="root",
-            password="Maria123.",
-            database='CVP_DB')
-
-        cur = conn.cursor()
+        conn, cur = db_conn()
         total = contract.valor + contract.adicional - contract.abono
         values = (contract.contract, contract.fecha, contract.valor, contract.adicional,
                   contract.abono, total, contract.renovaciones, contract.articulo, contract.customer_id)
@@ -207,14 +198,8 @@ def add_contract(contract: Contrato):
 
 @ app.get('/get_contracts', tags=['contracts'])
 def get_contracts():
-    conn = mysql.connector.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="Maria123.",
-        database='CVP_DB')
 
-    cur = conn.cursor()
+    conn, cur = db_conn()
     cur.execute('SELECT * FROM contracts')
     contracts = cur.fetchall()
     conn.close()
@@ -226,14 +211,7 @@ def get_contracts():
 
 @ app.get('/get_contract_by_contract/{_contract}', tags=['contracts'])
 def get_contracts(_contract: int):
-    conn = mysql.connector.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="Maria123.",
-        database='CVP_DB')
-
-    cur = conn.cursor()
+    conn, cur = db_conn()
     cur.execute('SELECT * FROM contracts WHERE contract = %i' % (_contract))
     contract = cur.fetchone()
     conn.close()
@@ -245,14 +223,7 @@ def get_contracts(_contract: int):
 
 @ app.get('/get_contracts_by_customer_id/{customer_id}', tags=['contracts'])
 def get_contracts(customer_id: int):
-    conn = mysql.connector.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="Maria123.",
-        database='CVP_DB')
-
-    cur = conn.cursor()
+    conn, cur = db_conn()
     cur.execute('SELECT * FROM contracts WHERE customer_id = %i' %
                 (customer_id))
     contracts = cur.fetchall()
@@ -276,14 +247,7 @@ def home():
 
 @app.get('/get_contracts_names', tags=['utilidades'])
 def get_contracts_names():
-    conn = mysql.connector.connect(
-        host="127.0.0.1",
-        port=3306,
-        user="root",
-        password="Maria123.",
-        database='CVP_DB')
-
-    cur = conn.cursor()
+    conn, cur = db_conn()
     cur.execute('SELECT * FROM contracts')
     conn.close()
     return cur.column_names
