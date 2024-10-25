@@ -138,7 +138,7 @@ def get_customer_by_id(id: int):
 @app.get('/get_customer_by_document/{document}', tags=['customers'])
 def get_customer_by_document(document: str):
     """ Buscamos un cliente por documento """
-    # print(documento)
+
     try:
         conn, cur = db_conn()
         cur.execute(
@@ -198,40 +198,49 @@ def add_contract(contract: Contrato):
 
 @ app.get('/get_contracts', tags=['contracts'])
 def get_contracts():
-
-    conn, cur = db_conn()
-    cur.execute('SELECT * FROM contracts')
-    contracts = cur.fetchall()
-    conn.close()
-    return {
-        'info': db2json(contracts, cur.column_names),
-        'column_names': cur.column_names
-    }
+    try:
+        conn, cur = db_conn()
+        cur.execute('SELECT * FROM contracts')
+        contracts = cur.fetchall()
+        conn.close()
+        return {
+            'info': db2json(contracts, cur.column_names),
+            'column_names': cur.column_names
+        }
+    except:
+        return -1
 
 
 @ app.get('/get_contract_by_contract/{_contract}', tags=['contracts'])
-def get_contracts(_contract: int):
-    conn, cur = db_conn()
-    cur.execute('SELECT * FROM contracts WHERE contract = %i' % (_contract))
-    contract = cur.fetchone()
-    conn.close()
-    return {
-        'info': db2json_one(contract, cur.column_names),
-        'column_names': cur.column_names
-    }
+def get_contract_by_contract(_contract: int):
+    try:
+        conn, cur = db_conn()
+        cur.execute('SELECT * FROM contracts WHERE contract = %i' %
+                    (_contract))
+        contract = cur.fetchone()
+        conn.close()
+        return {
+            'info': db2json_one(contract, cur.column_names),
+            'column_names': cur.column_names
+        }
+    except:
+        return -1
 
 
 @ app.get('/get_contracts_by_customer_id/{customer_id}', tags=['contracts'])
-def get_contracts(customer_id: int):
-    conn, cur = db_conn()
-    cur.execute('SELECT * FROM contracts WHERE customer_id = %i' %
-                (customer_id))
-    contracts = cur.fetchall()
-    conn.close()
-    return {
-        'info': db2json(contracts, cur.column_names),
-        'column_names': cur.column_names
-    }
+def get_contracts_by_customer_id(customer_id: int):
+    try:
+        conn, cur = db_conn()
+        cur.execute('SELECT * FROM contracts WHERE customer_id = %i' %
+                    (customer_id))
+        contracts = cur.fetchall()
+        conn.close()
+        return {
+            'info': db2json(contracts, cur.column_names),
+            'column_names': cur.column_names
+        }
+    except:
+        return -1
 
 
 """ UTILIDADES """

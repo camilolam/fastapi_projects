@@ -19,7 +19,7 @@ def json2table(data, names):
     return response
 
 
-def fill_table(customer):
+def fill_table(window, customer):
     window['-input_id-'].update(customer['id'])
     window['-input_name-'].update('%s %s' % (customer['name'],
                                              customer['surname']))
@@ -29,11 +29,13 @@ def fill_table(customer):
 
 def query(url):
     data = requests.get(url)
-    return data.json()
+    response = data.json()
+    return response
 
 
-def save_selected(contract, customer):
-
+def save_selected(window, contract, customer):
+    window['-selected_info_text-'].update(
+        "información seleccionada: \t Cliente: %s - Contrato: %i" % (customer['name'], contract['contract']))
     with open('../tmp/tmp.json', 'w') as json_file:
         new_data = {
             "contract": contract,
@@ -73,6 +75,7 @@ Column2 = [
                                       disabled=True)],
     [sg.Text('Correo Electrónico  \t'), sg.Input(key='-input_email-',
                                                  disabled=True)],
+    [sg.Text('No se ha seleccinado informacion  \t', key='-selected_info_text-')],
     [sg.Text()],
 ]
 
@@ -85,7 +88,7 @@ layout = [
     [sg.Text()],
     [sg.Column(column1), sg.Text(), sg.Column(Column2)],
     [
-        sg.Button('Mostrar contratos', key='-show_all-'),
+        sg.Button('Inicio', key='-show_all-'),
         sg.Button('Seleccionar contrato', key='-select_contract-'),
         sg.Button('Nuevo Contrato', key='-add_contract-'),
         sg.Button('Adicional', key='-additinal_contract-'),
@@ -104,7 +107,7 @@ layout = [
     [sg.Button('Salir', key='-salir-')]
 ]
 
-window = sg.Window('Compravente el Poblado', layout)
+window = sg.Window('Compraventa el Poblado', layout)
 
 while True:
     event, values = window.read()
@@ -125,34 +128,42 @@ while True:
                 if data == -1:
                     sg.popup('Usuario no encontrado')
                 else:
+                    window['-selected_info_text-'].update(
+                        'No se ha seleccinado informacion')
+                    with open('../tmp/tmp.json', 'w') as json_file:
+                        data = json.dump('', json_file)
                     customer = data['info']
                     data = query("http://127.0.0.1:8000/get_contracts_by_customer_id/%i" % (
                         int(customer['id'])))
                     contracts = data['info']
                     names = data['column_names']
                     data_table = json2table(contracts, names)
-                    fill_table(customer)
+                    fill_table(window, customer)
                     window['-tabla-'].update(values=data_table)
 
             if option_search == 'Contrato':
                 data = query("http://127.0.0.1:8000/get_contract_by_contract/%i" % (
                     int(input_search)))
-                contract = data['info']
-                names = data['column_names']
 
-                if contract == -1:
+                if data == -1:
                     sg.popup('Contrato no encontrado, ingresa contrato valido')
                 else:
+                    contract = data['info']
+                    names = data['column_names']
                     data = query("http://127.0.0.1:8000/get_customer_by_id/%i" % (
                         contract['customer_id']))
                     customer = data['info']
 
                     data_table = json2table([contract], names)
                     window['-tabla-'].update(values=data_table)
-                    fill_table(customer)
-                    save_selected(contract, customer)
+                    fill_table(window, customer)
+                    save_selected(window, contract, customer)
 
     elif event == '-show_all-':
+        with open('../tmp/tmp.json', 'w') as json_file:
+            data = json.dump('', json_file)
+        window['-selected_info_text-'].update(
+            'No se ha seleccinado informacion')
         data = query("http://127.0.0.1:8000/get_contracts")
         contracts = data['info']
         names = data['column_names']
@@ -165,12 +176,14 @@ while True:
         window['-input_email-'].update('')
 
     elif event == '-select_contract-':
-        id_tabla = values['-tabla-'][0]
+        print(values)
+
         customer_id = values['-input_id-']
 
-        if (id_tabla == []):
+        if (values['-tabla-'] == []):
             sg.popup('Selecciona una opción en la tabla')
         else:
+            id_tabla = values['-tabla-'][0]
             if customer_id == '':
                 data = query("http://127.0.0.1:8000/get_contracts")
             else:
@@ -184,19 +197,19 @@ while True:
                 int(contract_selected['customer_id'])))
             customer = data['info']
             data_table = json2table([contract_selected], names)
-            fill_table(customer)
-            save_selected(contract_selected, customer)
+            fill_table(window, customer)
+            save_selected(window, contract_selected, customer)
             window['-tabla-'].update(values=data_table)
 
-    elif event == '-buscar_contratos_documento-':
-        sg.popup('Estas intentando buscar contratos')
     elif event == '-salir-':
         break
 
-    # if isinstance(event, tuple):
-    #     # TABLE CLICKED Event has value in format ('-TABLE=', '+CLICKED+', (row,col))
-    #     if event[0] == '-tabla-':
-    #         print(values['-tabla-'])
-    #         window['-tabla-']
 
 window.close()
+
+# if isinstance(event, tuple): Esta es la forma de hacer que cuando seleccione alguna celda en la tabla, se pueda hacer sin un botón
+
+#     # TABLE CLICKED Event has value in format ('-TABLE=', '+CLICKED+', (row,col))
+#     if event[0] == '-tabla-':
+#         print(values['-tabla-'])
+#         window['-tabla-']
