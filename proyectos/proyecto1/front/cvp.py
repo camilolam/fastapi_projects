@@ -2,10 +2,25 @@ import PySimpleGUI as sg  # type: ignore
 import requests  # type: ignore
 from pathlib import Path
 import json
+from clases.utilities import Utilities
+import dotenv
+import os
+
+dotenv.load_dotenv()
+URL_SERVER = os.getenv("URL_SERVER")
+print("url: ", URL_SERVER)
+
 
 sg.theme('DarkAmber')
 
 """ UTILITIES """
+
+
+def blink_button(state):
+    window['-add_contract-'].update(disabled=state)
+    window['-additinal_contract-'].update(disabled=state)
+    window['-payment_contract-'].update(disabled=state)
+    window['-renewal_contract-'].update(disabled=state)
 
 
 def json2table(data, names):
@@ -43,10 +58,12 @@ def save_selected(window, contract, customer):
         }
         data = json.dump(new_data, json_file)
 
+    blink_button(False)
+
 
 """ MAIN WINDOW """
 
-data = query('http://127.0.0.1:8000/get_contracts')
+data = query('%s/get_contracts' % (URL_SERVER))
 contracts = data['info']
 names = data['column_names']
 tabla = json2table(contracts, names)
@@ -88,12 +105,18 @@ layout = [
     [sg.Text()],
     [sg.Column(column1), sg.Text(), sg.Column(Column2)],
     [
-        sg.Button('Inicio', key='-show_all-'),
-        sg.Button('Seleccionar contrato', key='-select_contract-'),
-        sg.Button('Nuevo Contrato', key='-add_contract-'),
-        sg.Button('Adicional', key='-additinal_contract-'),
-        sg.Button('Abono', key='-payment_contract-'),
-        sg.Button('Renovación', key='-renewal_contract-')
+        sg.Button('Inicio', key='-show_all-', expand_x=True,
+                  disabled_button_color="gray"),
+        sg.Button('Seleccionar contrato',
+                  key='-select_contract-', expand_x=True, disabled_button_color="gray"),
+        sg.Button('Nuevo Contrato', key='-add_contract-',
+                  disabled=True, expand_x=True, disabled_button_color="gray"),
+        sg.Button('Adicional', key='-additinal_contract-',
+                  disabled=True, expand_x=True, disabled_button_color="gray"),
+        sg.Button('Abono', key='-payment_contract-',
+                  disabled=True, expand_x=True, disabled_button_color="gray"),
+        sg.Button('Renovación', key='-renewal_contract-',
+                  disabled=True, expand_x=True, disabled_button_color="gray")
     ],
     [sg.Table(values=tabla,
               headings=names,
@@ -108,6 +131,8 @@ layout = [
 ]
 
 window = sg.Window('Compraventa el Poblado', layout)
+util = Utilities(window)
+util.str_op()
 
 while True:
     event, values = window.read()
@@ -122,35 +147,39 @@ while True:
 
         else:
             if option_search == 'Cliente':
-                data = query("http://127.0.0.1:8000/get_customer_by_document/%i" % (
-                    int(input_search)))
+                with open('../tmp/tmp.json', 'w') as json_file:
+                    data = json.dump('', json_file)
+                blink_button(True)
+                data = query("%s/get_customer_by_document/%i" %
+                             (URL_SERVER, int(input_search)))
 
                 if data == -1:
                     sg.popup('Usuario no encontrado')
                 else:
+                    customer = data['info']
                     window['-selected_info_text-'].update(
                         'No se ha seleccinado informacion')
                     with open('../tmp/tmp.json', 'w') as json_file:
                         data = json.dump('', json_file)
-                    customer = data['info']
-                    data = query("http://127.0.0.1:8000/get_contracts_by_customer_id/%i" % (
-                        int(customer['id'])))
-                    contracts = data['info']
-                    names = data['column_names']
+
+                    data1 = query("%s/get_contracts_by_customer_id/%i" % (
+                        URL_SERVER, int(customer['id'])))
+                    contracts = data1['info']
+                    names = data1['column_names']
                     data_table = json2table(contracts, names)
                     fill_table(window, customer)
                     window['-tabla-'].update(values=data_table)
 
             if option_search == 'Contrato':
-                data = query("http://127.0.0.1:8000/get_contract_by_contract/%i" % (
-                    int(input_search)))
+                data = query("%s/get_contract_by_contract/%i" % (URL_SERVER,
+                                                                 int(input_search)))
 
                 if data == -1:
                     sg.popup('Contrato no encontrado, ingresa contrato valido')
                 else:
                     contract = data['info']
                     names = data['column_names']
-                    data = query("http://127.0.0.1:8000/get_customer_by_id/%i" % (
+                    data = query("%s/get_customer_by_id/%i" % (
                         contract['customer_id']))
                     customer = data['info']
 
@@ -158,13 +187,14 @@ while True:
                     window['-tabla-'].update(values=data_table)
                     fill_table(window, customer)
                     save_selected(window, contract, customer)
+                    blink_button(False)
 
     elif event == '-show_all-':
         with open('../tmp/tmp.json', 'w') as json_file:
             data = json.dump('', json_file)
         window['-selected_info_text-'].update(
             'No se ha seleccinado informacion')
-        data = query("http://127.0.0.1:8000/get_contracts")
+        data = query("%s/get_contracts")
         contracts = data['info']
         names = data['column_names']
         table_data = json2table(contracts, names)
@@ -174,9 +204,10 @@ while True:
         window['-input_name-'].update('')
         window['-input_document-'].update('')
         window['-input_email-'].update('')
+        blink_button(True)
 
     elif event == '-select_contract-':
-        print(values)
+        # print(values)
 
         customer_id = values['-input_id-']
 
@@ -185,21 +216,28 @@ while True:
         else:
             id_tabla = values['-tabla-'][0]
             if customer_id == '':
-                data = query("http://127.0.0.1:8000/get_contracts")
+                data = query("%s/get_contracts" % (URL_SERVER))
             else:
-                data = query("http://127.0.0.1:8000/get_contracts_by_customer_id/%i" % (
-                    int(customer_id)))
+                data = query("%s/get_contracts_by_customer_id/%i" % (
+                    URL_SERVER, int(customer_id)))
 
             contract_selected = data['info'][id_tabla]
             names = data['column_names']
 
-            data = query("http://127.0.0.1:8000/get_customer_by_id/%i" % (
-                int(contract_selected['customer_id'])))
+            data = query("%s/get_customer_by_id/%i" % (
+                URL_SERVER, int(contract_selected['customer_id'])))
             customer = data['info']
             data_table = json2table([contract_selected], names)
             fill_table(window, customer)
             save_selected(window, contract_selected, customer)
             window['-tabla-'].update(values=data_table)
+            blink_button(False)
+
+    elif event == '-add_contract-':
+
+        with open('../tmp/tmp.json', 'r') as text:
+            data = json.load(text)
+        print(data)
 
     elif event == '-salir-':
         break
